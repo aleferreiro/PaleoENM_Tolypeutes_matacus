@@ -1,0 +1,144 @@
+---
+title: "Obtención y procesamiento de datos de entrada"
+author: "Alejandro Manuel Ferreiro"
+date: '2022-05-23'
+output: html_document
+---
+
+# Registros de presencias
+
+Los registros de presencia se obtuvieron de un extenso trabajo de campo realizado principalmente en Argentina, así como de visitas a colecciones mastozoológicas tanto de Argentina como de Bolivia. Esta base de datos se amplió haciendo una revisión profunda en la literatura, y de bases de datos abiertas tales como [GBIF](www.gbif.org), [VertNet](www.vertnet.org) y [PaleoDB](www.paleobiodb.org). 
+
+### Cargar puntos en R
+
+Con todos ellos se armó una base de datos en una hoja de cálculo de excel, la cual se cargó en R de la siguiente manera:
+
+```{r, eval=TRUE, results='hide', warning=FALSE, message=FALSE}
+# Cargo los paquetes necesarios
+library(readxl)
+library(tidyverse)
+library(sf)
+library(tmap)
+library(tmaptools)
+```
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+# Genero un tibble a partir del excel con los registros de presencia
+rawOccs <- read.csv("Data/1_rawOcc.csv", sep = ";")
+rawOccsSF = st_as_sf(rawOccs, coords = c("Longitud", "Latitud"), crs=4326) 
+summary(rawOccs)
+```
+
+Se separaron los registros de acuerdo a su temporalidad en Actual, Histórico, Holocénico y Pleistocénico. y a su vez consversion de puntos de presencia a objeto espacial "sf".
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+# Filtro registros actuales
+rawOccsActual = rawOccs %>% filter(Temporalidad == "Actual")
+rawOccsActualSF = st_as_sf(rawOccsActual, coords = c("Longitud", "Latitud"), crs = 4326)
+# Filtro registros historico
+rawOccsHistorico = rawOccs %>% filter(Temporalidad == "Historico")
+rawOccsHistoricoSF = st_as_sf(rawOccsHistorico, coords = c("Longitud", "Latitud"), crs = 4326)
+# Filtro registros holocenicos
+rawOccsHoloceno = rawOccs %>% filter(Temporalidad == "Holoceno")
+rawOccsHolocenoSF = st_as_sf(rawOccsHoloceno, coords = c("Longitud", "Latitud"), crs = 4326)
+# Filtro registros historico
+rawOccsPleistoceno = rawOccs %>% filter(Temporalidad == "Pleistoceno")
+rawOccsPleistocenoSF = st_as_sf(rawOccsPleistoceno, coords = c("Longitud", "Latitud"), crs = 4326)
+```
+
+# Area M
+
+Para evitar el sobreajuste del modelo, las capas de calibración se recortaron usando una máscara con una estimación del área accesible (M) para la especie. Esta se determinó utilizando un mapa de [ecoregiones](https://www.worldwildlife.org/publications/terrestrial-ecoregions-of-the-world) (Olson, 2001) e incluyó todas las ecorregiones donde se encontró un registro de esta especie. Como estas ecorregiones representan sólo patrones actuales, se consideró un área buffer de 1° de latitud/longitud para tener en cuenta los cambios en estas regiones en el pasado.
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+## Ecoregiones (Olson, 2001)
+Ecoregion = st_read("Data/EcoregionesOlson2001/wwf_terr_ecos.shp")
+Ecoregion = Ecoregion %>% filter(REALM == "NT") 
+EcoregionSF = st_as_sf(Ecoregion)
+EcoregionSF = st_transform(EcoregionSF, 4326)
+# Me quedo solo con ecoregiones del neotropico
+# Genero poligono con ecoregiones donde hay registros
+sf_use_s2(FALSE)
+AreaMsinBuffer = EcoregionSF[rawOccsSF, ]
+AreaM = AreaMsinBuffer %>% st_buffer( dist = 1) %>% st_union()
+# Ploteo para ver como quedo en relacion a Sudamerica
+PaisesSudamerica = rnaturalearth::ne_countries(scale = 10, continent = "south america", returnclass = "sf")
+tm_shape(PaisesSudamerica) + tm_polygons() +
+  tm_shape(AreaM) + tm_borders(col = "yellow", lwd = 2) 
+```
+
+# Mapas
+
+Con el fin de observar la distribución geográfica de los registros crudos (sin filtrado espacial), los grafico en mapas por temporalidad, usando como capas base las bioregiones para tiempos actuales e históricos, y limites politicos para Holoceno y Pleistoceno.
+
+- Mapa con registros actuales
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+# Mapa de bioregiones
+BioregionMorrone = st_read("Data/BioregionesMorrone2014/Lowenberg_Neto_2014.shp")
+BioregionMorrone = st_transform(BioregionMorrone, 4326)
+BioregionMorroneLabels = BioregionMorrone %>%  
+  filter(Province_1=="Chacoan province" | Province_1=="Monte province" | Province_1=="Pampean province" 
+         | Province_1=="Yungas province" | Province_1=="Cerrado province" |Province_1=="Parana Forest province" ) %>%
+  mutate(Province_1 = gsub(" province", "",Province_1)) %>% 
+  st_transform(crs = 4326)
+## Mapas de registros actuales e historico se ploteron con Bioregiones como capa base
+MapaBaseBioregion = tm_shape(BioregionMorrone, bbox = AreaM) + tm_polygons(col = "Province_1", palette = get_brewer_pal("Greys", n = 7, contrast = c(0.15, 0.5), plot = F), legend.show = F) +
+tm_shape(AreaM) + tm_borders(col = "yellow", lwd = 2)+
+  tm_shape(BioregionMorroneLabels) + tm_text("Province_1", size = 0.5)+
+  tm_layout(title = "Actual",
+            title.position = c("left", "top"),
+            legend.position = c(0.7,0.05))
+
+## Registros actuales
+PresenciasActualMap =  MapaBaseBioregion +
+  tm_shape(rawOccsActualSF) +  tm_symbols(size = 0.1, shape = 21,col = "black", alpha = 1)
+PresenciasActualMap
+```
+- Mapa con registros historicos
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+## Registros actuales
+PresenciasHistoricasMap =  MapaBaseBioregion +
+  tm_shape(rawOccsHistoricoSF) +  tm_symbols(size = 0.1, shape = 21,col = "black", alpha = 1)
+PresenciasHistoricasMap
+```
+
+- Mapa con registros del Holoceno
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+# Mapa base límites políticos
+# Mapa con registros del holoceno
+MapaBasePolitico =  tm_shape(PaisesSudamerica, bbox = AreaM) + tm_polygons(col = "lightgrey") + 
+  tm_shape(AreaM) + tm_borders(col = "yellow", lwd = 2)
+# Mapa con registros del Holoceno
+PresenciasHolocenoMap = MapaBasePolitico + 
+  tm_shape(rawOccsHolocenoSF) +  tm_symbols(col = "black", size = 0.1, shape = 21) +
+  tm_layout(title = "Holocene",
+            title.position = c("left", "top"),
+            legend.position = c(0.7,0.05))
+PresenciasHolocenoMap
+```
+
+- Mapa con registros del Pleistoceno
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+# Mapa con registros del Holoceno
+PresenciasPleistocenoMap = MapaBasePolitico + 
+  tm_shape(rawOccsPleistocenoSF) +  tm_symbols(col = "black", size = 0.1, shape = 21) +
+  tm_layout(title = "Pleistoceno",
+            title.position = c("left", "top"),
+            legend.position = c(0.7,0.05))
+PresenciasPleistocenoMap
+```
+
+Genero un mapa final y lo guardo como pdf para hacerle modificaciones esteticas en Inkscape
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+
+# Grafico final
+GraficoRawOccs = tmap_arrange(PresenciasPleistocenoMap, PresenciasHolocenoMap, PresenciasHistoricasMap, PresenciasActualMap, 
+                       nrow = 1, asp = NULL)
+GraficoRawOccs
+# Guardo el mapa vectorizado para darle los retoques finales en Inkscape
+tmap_save(GraficoRawOccs, "Figures/2_OccsMap.pdf")
+```

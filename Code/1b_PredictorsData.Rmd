@@ -1,0 +1,62 @@
+---
+title: "Carga y seleccion de variables predictoras"
+author: "Alejandro Manuel Ferreiro"
+date: '2022-05-23'
+output: html_document
+---
+# Variables Predictoras
+En esta pagina veremos cómo se obtuvieron y preprocesaron las capas con variables predictoras usadas en el trabajo.
+
+Paquetes usados:
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+library(sf)
+library(tidyverse)
+library(raster)
+library(terra)
+```
+
+
+## 1.a. Variables climáticas
+
+Se utilizaron las variables bioclimáticas de [WorldClim 1.4](https://www.worldclim.org/data/v1.4/paleo1.4.html) CON RESOLUCIÓN DE 2.5 minutos obtenidas de 3 GCMs:
+- CCSM4 (Mid-Holocene, LGM y LIG)
+- MIROC-ESM (Mid-Holocene y LGM)
+- MPI-ESM-P (Mid-Holocene y LGM)
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+# argo las variables bioclimáticas descargadas
+
+```
+
+## 1.b. Variables edáficas
+
+Se utilizaron 4 variables físicas del suelo obtenidas de [SoilGrid](https://www.isric.org/explore/soilgrids):
+-
+-
+-
+-
+- 
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+# CODIGO PARA CARGAR VARIABLES de soilgrid mediante el paquete geodata
+```
+
+Fueron rescaladas para matchear la resolucion de las capas de WorldClim 1.4:
+
+## 2. Recorte por Area M
+
+Basados en el Area M definida previamente recortamos las capas climáticas
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+# CODIGO PARA CARGAR VARIABLES de soilgrid mediante el paquete geodata
+```
+
+## 3. Selección de variables
+
+La selección de las variables se realizó teniendo en cuenta dos factores. En primer lugar la correlación entre ellas, que permite definir grupos de variables que brindan información similar al modelo. En segundo lugar, variables que presentan una mayor contribución a un modelo preliminar realizado en maxent con parámetros por default.
+
+
+### Chequeo autocorrelación
+Realizó un correlalograma entre las diferentes variables para determinar cuales se encuentran correlacionadas entre sí.
+
+### Chequeo contribución preliminar de variables

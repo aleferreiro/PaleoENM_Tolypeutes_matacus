@@ -1,0 +1,46 @@
+---
+title: "Modelacion de Nicho utilizando el paquete `kuenm`"
+author: "Alejandro Manuel Ferreiro"
+date: '2022-05-23'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Nicho actual
+## 1.1. Preparacion de carpetas y datos de entrada
+### Filtrado espacial
+
+Para evitar el sobreajuste del modelo debido al sesgo de muestreo, los registros usados en la calibra-ción se filtraron espacialmente dejando sólo aquellas presencias que estaban separadas por al menos 15 km de otras
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+# CODIGO PARA EL BLOQUEO ESPACIAL DE REGISTROS
+
+
+
+```
+
+#### Separo registros de entrenamiento y de evaluación
+
+Con el objetivo de evaluar los modelos generados se utilizó el método de validación cruzada definiendo el 70% de los registros para entrenar los modelos y el 30% restante para su evaluación. Esta separación fuer realizada mediante el método de bloqueo espacial, el cual resulta más apropiado para modelos que serán transferidos en el tiempo.
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+# CODIGO PARA EL BLOQUEO ESPACIAL DE REGISTROS
+
+```
+
+
+### 1.2. Calibración de modelos
+### 1.3. Selección de modelos
+
+## 2. Nicho glaciar
+### 2.1. Preparacion de carpetas y datos de entrada
+### 2.2. Calibración de modelos
+### 2.3. Selección de modelos
+
+## 3. Nicho multitemporal
+### 3.1. Preparacion de carpetas y datos de entrada
+### 3.2. Calibración de modelos
+### 3.3. Selección de modelos
